@@ -1,14 +1,11 @@
 package basic;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-
-public class Field {
+public class Field implements Cloneable {
 	private Position pos;
 	private int number;
 	private boolean isCorrect, isEditable;
-	private boolean[] possibleNumbers;
+
+	private PossibleNumbers possibleNumbers;
 	
 	public Field(Position pos) {
 		this.pos = pos;
@@ -17,8 +14,8 @@ public class Field {
 		isCorrect = true;
 		isEditable = true;
 
-		possibleNumbers = new boolean[9];
-		updatePossibleNumbersArray();
+		possibleNumbers = new PossibleNumbers();
+		updatePossibleNumbers();
 	}
 	
 	public Field(Position pos, int number, boolean isEditable) {
@@ -28,16 +25,16 @@ public class Field {
 		isCorrect = true;
 		this.isEditable = isEditable;
 		
-		possibleNumbers = new boolean[9];
-		updatePossibleNumbersArray();
+		possibleNumbers = new PossibleNumbers();
+		updatePossibleNumbers();
 	}
 	
-	public void updatePossibleNumbersArray() {
+	public void updatePossibleNumbers() {
 		if (number == 0) {
-			Arrays.fill(possibleNumbers, true); // all numbers can be entered into this field
+			possibleNumbers.fill(true); // all numbers can be entered into this field
 		} else {
-			Arrays.fill(possibleNumbers, false);
-			possibleNumbers[number - 1] = true; // the number of this field is set
+			possibleNumbers.fill(false);
+			possibleNumbers.setPossibleNumber(number, true); // the number of this field is set
 		}
 	}
 	
@@ -52,7 +49,7 @@ public class Field {
 	public void setNumber(int nNumber) {
 		if (isEditable) {
 			number = nNumber;
-			updatePossibleNumbersArray();
+			updatePossibleNumbers();
 		}
 	}
 	
@@ -80,21 +77,21 @@ public class Field {
 		return (number == 0 && isEditable);
 	}
 	
-	public void setPossibleNumber(int number, boolean b) { // changes state of specified number
-		possibleNumbers[number - 1] = b;
+	public PossibleNumbers getPossibleNumbers() {
+		return possibleNumbers;
 	}
 	
-	public boolean getPossibleNumber(int number) {
-		return possibleNumbers[number - 1];
+	public void savePossibleNumbers(PossibleNumbers possibleNumbers) {
+		this.possibleNumbers = possibleNumbers;
 	}
 	
-	public List<Integer> getRemainingPossibleNumbers() {
-		List<Integer> remainingPossibleNumbers = new LinkedList<Integer>();
-		for (int i = 0; i < possibleNumbers.length; i++) {
-			if (possibleNumbers[i] == true) {
-				remainingPossibleNumbers.add(Integer.valueOf(i + 1));
-			}
-		}
-		return remainingPossibleNumbers;
+	public Field clone() throws CloneNotSupportedException {
+		Field temp = (Field) super.clone();
+		temp.isCorrect = isCorrect;
+		temp.isEditable = isEditable;
+		temp.number = number;
+		temp.pos = pos;
+		temp.possibleNumbers = possibleNumbers.clone();
+		return temp;
 	}
 }

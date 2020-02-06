@@ -2,10 +2,10 @@ package user_interface;
 
 public class TextOutput {
 	public static void main(String[] args) {
-		System.out.println("9 + \u1D7D7");
-		
-		final char[] chars = Character.toChars(0x1D7D7);
-		final String s = new String(chars);
-		System.out.println(s);
+		for (int i = 0; i < 10; i++) {
+			final char[] chars = Character.toChars(0x1D7CE + i);
+			final String s = new String(chars);
+			System.out.println(s);
+		}
 	}
 }

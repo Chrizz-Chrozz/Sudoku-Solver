@@ -8,6 +8,9 @@ import java.util.LinkedList;
 import javax.swing.*;
 
 import basic.*;
+import exceptions.UnsolvableException;
+import logic.BoardSolver;
+import logic.ErrorFinder;
 
 public class GUI extends JFrame implements ActionListener, KeyListener, MouseListener {
 	/**
@@ -21,6 +24,7 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 	private GameBoard gameBoard;
 	private BoardSolver boardSolver;
 	private ErrorFinder errorFinder;
+	private BoardImporter importer;
 	
 	private Position activeFieldPos;
 
@@ -28,9 +32,12 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 		super("Sudoku Solver");
 
 		d = new Draw();
-		gameBoard = new GameBoard();
-		Field field = new Field(new Position(0, 0), 9, true);
-		gameBoard.saveField(field);
+		importer = new BoardImporter();
+		
+		gameBoard = importer.importBoard(0);
+		boardSolver = new BoardSolver(gameBoard, BoardSolver.STANDARD_PROCEDURE);
+		gameBoard = boardSolver.getGameBoard();
+		
 		
 		activeFieldPos = new Position(-1, -1);
 
@@ -47,11 +54,33 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 		OutputStream oldErr = System.err;
 		
 		System.setOut(new CustomOutputStream(d, Color.GREEN, oldOut));
-		System.setErr(new CustomOutputStream(d, Color.RED, oldErr));
+		//System.setErr(new CustomOutputStream(d, Color.RED, oldErr));
 		
-
+		
+		newGame = new JButton("New Game");
+		newGame.addActionListener(this);
+		newGame.setToolTipText("This will start a new game with a new board.");
+		reset = new JButton("Reset");
+		reset.addActionListener(this);
+		reset.setToolTipText("This button will clear the current board.");
+		solve = new JButton("Solve");
+		solve.addActionListener(this);
+		solve.setToolTipText("Press this button to solve the board.");
+		check = new JButton("Check");
+		check.addActionListener(this);
+		check.setToolTipText("Press this button to check for errors!");
+		
+		
 		buttonPanel = new JPanel();
 		buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.LINE_AXIS));
+		buttonPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+		buttonPanel.add(newGame);
+		buttonPanel.add(Box.createRigidArea(new Dimension(10, 0)));
+		buttonPanel.add(reset);
+		buttonPanel.add(Box.createRigidArea(new Dimension(10, 0)));
+		buttonPanel.add(solve);
+		buttonPanel.add(Box.createRigidArea(new Dimension(10, 0)));
+		buttonPanel.add(check);
 
 		controlPanel = new JPanel();
 		controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.PAGE_AXIS));
@@ -61,19 +90,26 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 		mainPanel.add(controlPanel, BorderLayout.LINE_START);
 
 		add(mainPanel);
+		setFocusable(true);
 		addKeyListener(this);
 		pack();
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setAlwaysOnTop(true);
 		setVisible(true);
+		setResizable(false);
+		setBackground(Color.WHITE);
 		d.repaint();
+		
+		//System.out.println("This is a test");
 	}
 
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		if (e.getSource() == this.drawPanel) {
-			activeFieldPos = d.calculateClickedField(e.getX(), e.getY());
+			Position clickedFieldPos = d.calculateClickedField(e.getX(), e.getY());
+			activeFieldPos = (clickedFieldPos != null)? clickedFieldPos : activeFieldPos;
+			
 			d.repaint();
 		}
 	}
@@ -104,26 +140,7 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 
 	@Override
 	public void keyTyped(KeyEvent e) {
-		if (activeFieldPos.getX() != -1 && activeFieldPos.getY() != -1) {
-			Field activeField = gameBoard.getField(activeFieldPos.getX(), activeFieldPos.getY());
-			
-			if (e.getKeyCode() == KeyEvent.VK_DELETE) {
-				activeField.setNumber(0);
-			} else if (Character.getType(e.getKeyChar()) == Character.DECIMAL_DIGIT_NUMBER) {
-				activeField.setNumber(Character.getNumericValue(e.getKeyChar()));
-			}
-			
-			gameBoard.saveField(activeField);
-			gameBoard.reset();
-			
-			boardSolver = new BoardSolver(gameBoard);
-			gameBoard = boardSolver.getGameBoard();
-			
-			errorFinder = new ErrorFinder(gameBoard);
-			gameBoard = errorFinder.getGameBoard();
-			
-			d.repaint();
-		}
+		
 	}
 
 	@Override
@@ -134,31 +151,85 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 
 	@Override
 	public void keyReleased(KeyEvent e) {
-		// TODO Auto-generated method stub
-
+		boolean working = false;
+		if (!working) {
+			working = true;
+			if (e.getKeyCode() == KeyEvent.VK_DELETE) {
+				setNumber(0);
+			} else if (e.getKeyCode() == KeyEvent.VK_A) {
+				boardSolver = new BoardSolver(gameBoard, BoardSolver.STANDARD_PROCEDURE);
+				try {
+					boardSolver.solveWithRecursion();
+				} catch (UnsolvableException exc) {
+					exc.printStackTrace();
+				}
+				gameBoard = boardSolver.getGameBoard();
+			} else if (e.getKeyCode() == KeyEvent.VK_R) {
+				gameBoard.clearAllEditableFields();
+			} else if (Character.getType(e.getKeyChar()) == Character.DECIMAL_DIGIT_NUMBER) {
+				setNumber(Character.getNumericValue(e.getKeyChar()));
+			}
+			d.repaint();
+			working = false;
+		} else {
+			System.err.printf("Stop");
+		}
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		// TODO Auto-generated method stub
+		if (e.getSource() == this.solve) {
+			boardSolver = new BoardSolver(gameBoard, BoardSolver.STANDARD_PROCEDURE);
+			try {
+				boardSolver.solveWithRecursion();
+			} catch (UnsolvableException exc) {
+				exc.printStackTrace();
+			}
+			gameBoard = boardSolver.getGameBoard();
+		} else if (e.getSource() == this.newGame) {
+			//TODO add board generation
+		} else if (e.getSource() == this.reset) {
+			gameBoard.clearAllEditableFields();
+		} else if (e.getSource() == this.check) {
+			ErrorFinder ef = new ErrorFinder(gameBoard);
+			gameBoard = ef.getGameBoard();
+			System.err.println("Es wurden " + ef.getAmountOfErrors() + " Fehler gefunden!");
+		}
+		d.repaint();
+	}
+	
 
+	private void setNumber(int number) {
+		if (activeFieldPos.getX() != -1 && activeFieldPos.getY() != -1) {
+			Field activeField = gameBoard.getField(activeFieldPos.getX(), activeFieldPos.getY());
+			activeField.setNumber(number);
+			gameBoard.saveField(activeField);
+			gameBoard.resetPossibleNumbers();
+			boardSolver = new BoardSolver(gameBoard, BoardSolver.STANDARD_PROCEDURE);
+			gameBoard = boardSolver.getGameBoard();
+			errorFinder = new ErrorFinder(gameBoard);
+			gameBoard = errorFinder.getGameBoard();
+		}
+		
 	}
 
 
 	private class Draw extends Component {
-		/**
-		 * 
-		 */
 		private static final long serialVersionUID = 1L;
 
 		private Dimension preferredDimension;
 		private int xPosActive, yPosActive;
 		private Graphics2D hiddenG2D;
+		
+		private String outputString;
+		private Color outputColor;
 
 		public Draw() {
-			preferredDimension = new Dimension(544, 544);
+			preferredDimension = new Dimension(546, 546);
 			xPosActive = -1;
 			yPosActive = -1;
+			
+			outputString = "";
 			
 			repaint();
 		}
@@ -178,6 +249,7 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 			paintLines(g2d);
 			paintNumbers(g2d);
 			paintPossibleNumbers(g2d);
+			paintOutput(g2d);
 		}
 
 		private void paintNumbers(Graphics2D g2d) {
@@ -189,7 +261,7 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 			
 			// import custom font
 			try {
-				customFont = Font.createFont(Font.TRUETYPE_FONT, new File("./src/main/resources/VanillaExtractRegular.ttf")).deriveFont(40f);
+				customFont = Font.createFont(Font.TRUETYPE_FONT, new File("./src/main/resources/Fonts/VanillaExtractRegular.ttf")).deriveFont(40f);
 			} catch (FontFormatException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
@@ -199,6 +271,13 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 			g2d.setFont(customFont);
 
 			for (Field f : allFields) {
+				// paint number of active field red, if the field is marked as incorrect
+				if (!f.isCorrect() && f.getPos().equals(activeFieldPos)) {
+					g2d.setColor(new Color(166, 11, 0));
+				} else {
+					g2d.setColor(Color.BLACK);
+				}
+				
 				if (f.getNumber() != 0) {
 					g2d.drawString(String.valueOf(f.getNumber()), f.getPos().getX() * 60 + 18, f.getPos().getY() * 60 + 48);
 				}
@@ -213,7 +292,7 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 			
 			for (Field f : allFields) {
 				if (f.getNumber() == 0) {
-					LinkedList<Integer> allPossibleNumbers = (LinkedList<Integer>) f.getRemainingPossibleNumbers();
+					LinkedList<Integer> allPossibleNumbers = f.getPossibleNumbers().asList();
 					
 					for (Integer i : allPossibleNumbers) {
 						int value = i.intValue();
@@ -241,13 +320,13 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 				Color fieldColor = null;
 
 				if (field.isEditable()) {
-					if (field.getRemainingPossibleNumbers().size() == 1 && field.getNumber() == 0) {
+					if (field.getPossibleNumbers().getAmount() == 1 && field.getNumber() == 0) {
 						fieldColor = Color.GREEN;
 					} else if (!field.isCorrect()) {
 						fieldColor = Color.RED;
 					}
 				} else {
-					fieldColor = Color.DARK_GRAY;
+					fieldColor = new Color(100, 100, 100);
 				}
 
 				if (fieldColor != null) {
@@ -266,11 +345,15 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 				g2d.fillRect(0, i * 60, 544, width);
 			}
 		}
+		
+		public void paintOutput(Graphics2D g2d) {
+			g2d.setColor(outputColor);
+			g2d.drawString(outputString, 60, 80);
+		}
 
-		public void paintText(String s, Color c) {
-			//TODO implement this shit you fucking disgrace
-			hiddenG2D.setColor(c);
-			hiddenG2D.drawString(s, 30, 30);
+		public void setTextAndColor(String s, Color c) {
+			outputString = s;
+			outputColor = c;
 		}
 
 
@@ -280,9 +363,13 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 		}
 		
 		public Position calculateClickedField(int mousePointerX, int mousePointerY) {
-		    xPosActive = (mousePointerX > 1 && mousePointerX < 543)? (int) (mousePointerX - 3) / 60 : -1;
-			yPosActive = (mousePointerY > 1 && mousePointerY < 543)? (int) (mousePointerY - 3) / 60 : -1;
-			
+		    int xPos = (mousePointerX > 1 && mousePointerX < 543)? (int) (mousePointerX - 3) / 60 : -1;
+			int yPos = (mousePointerY > 1 && mousePointerY < 543)? (int) (mousePointerY - 3) / 60 : -1;
+			if (!gameBoard.getField(xPos, yPos).isEditable()) {
+				return null;
+			}
+			xPosActive = xPos;
+			yPosActive = yPos;
 			return new Position(xPosActive, yPosActive);
 		}
 
@@ -290,7 +377,7 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 
 	public class CustomOutputStream extends PrintStream {
 
-		private Color c;
+		private Color c = Color.BLACK;
 		
 		public CustomOutputStream(Draw d, Color c, OutputStream out) {
 			super(out);
@@ -300,12 +387,12 @@ public class GUI extends JFrame implements ActionListener, KeyListener, MouseLis
 
 		@Override
 		public void println(String s) {
-			d.paintText(s, c);
+			d.setTextAndColor(s, c);
 		}
 
 		@Override
 		public void print(String s) {
-			d.paintText(s, c);
+			d.setTextAndColor(s, c);
 		}
 	}
 }

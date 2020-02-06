@@ -8,10 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import basic.Field;
 import basic.Position;
+import basic.PossibleNumbers;
 
 class FieldTester {
 	private static Field field;
@@ -50,9 +52,9 @@ class FieldTester {
 
 		for (int i = 1; i <= 9; i++) {
 			if (i == 8) {
-				assertTrue(field.getPossibleNumber(i));
+				assertTrue(field.getPossibleNumbers().getPossibleNumber(i));
 			} else {
-				assertFalse(field.getPossibleNumber(i));
+				assertFalse(field.getPossibleNumbers().getPossibleNumber(i));
 			}
 		}
 	}
@@ -62,7 +64,7 @@ class FieldTester {
 		setNumber(0);
 		
 		for (int i = 1; i <= 9; i++) {
-			assertTrue(field.getPossibleNumber(i));
+			assertTrue(field.getPossibleNumbers().getPossibleNumber(i));
 		}
 	}
 	
@@ -74,16 +76,19 @@ class FieldTester {
 	}
 	
 	@Test
+	@DisplayName("Test PossibleNumbers class")
 	void checkListOfAllRemainingPossibleNumbers() {
 		setNumber(0);
 		
 		boolean[] possibleNumbers = new boolean[] {true, false, false, true, true, false, false, true, false};
 		
+		PossibleNumbers pn = new PossibleNumbers();
+		
 		for (int i = 0; i < possibleNumbers.length; i++) {
-			field.setPossibleNumber(i + 1, possibleNumbers[i]);
+			pn.setPossibleNumber(i + 1, possibleNumbers[i]);
 		}
 		
-		List<Integer> remainingPossibleNumbers = field.getRemainingPossibleNumbers();
+		List<Integer> remainingPossibleNumbers = pn.asList();
 		
 		assertEquals(4, remainingPossibleNumbers.size());
 	}
