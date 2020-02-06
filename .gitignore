@@ -12,7 +12,10 @@ bin
 .eclipse
 .settings
 
+
 # maven specific
+# Source: https://github.com/github/gitignore/blob/master/Maven.gitignore
+
 target/
 pom.xml.tag
 pom.xml.releaseBackup
@@ -25,7 +28,10 @@ buildNumber.properties
 # https://github.com/takari/maven-wrapper#usage-without-binary-jar
 .mvn/wrapper/maven-wrapper.jar
 
+
 # more Java
+# Source: https://github.com/github/gitignore/blob/master/Java.gitignore
+
 # Log file
 *.log
 
