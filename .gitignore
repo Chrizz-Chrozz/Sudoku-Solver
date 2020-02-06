@@ -1,0 +1,12 @@
+.idea
+build
+bin
+*.class
+*.iml
+.directory
+.DS_Store
+.project
+.#*
+.gradle
+.eclipse
+.settings
